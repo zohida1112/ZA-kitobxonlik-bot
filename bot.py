@@ -338,11 +338,14 @@ TEST2_QUESTIONS = [{'q': 'Qari Mayorning yig‘ilishidagi kalamushlar masalasi b
 
 TEST2_TIME_LIMIT_MINUTES = 20
 
+
 bot = Bot(BOT_TOKEN)
 dp = Dispatcher()
 
 db = sqlite3.connect("users.db", check_same_thread=False)
 db.row_factory = sqlite3.Row
+
+# -------------------- DATABASE --------------------
 
 db.execute(
     """
@@ -358,7 +361,7 @@ db.execute(
     """
 )
 
-# Eski test jadvali o‘z holicha qoladi.
+# 1-kitob eski test natijalari saqlanadi.
 db.execute(
     """
     CREATE TABLE IF NOT EXISTS attempts (
@@ -372,7 +375,7 @@ db.execute(
     """
 )
 
-# 2-kitob uchun alohida jadval. Savol va variantlar tartibi har foydalanuvchi uchun saqlanadi.
+# 2-kitob natijalari, savol va variantlar aralash tartibi bilan saqlanadi.
 db.execute(
     """
     CREATE TABLE IF NOT EXISTS attempts2 (
@@ -388,32 +391,37 @@ db.execute(
     """
 )
 
-# 2-kitob uchun referal alohida hisoblanadi.
+# Har bir test uchun alohida kirish huquqi.
 db.execute(
     """
-    CREATE TABLE IF NOT EXISTS book2_access (
-        user_id INTEGER PRIMARY KEY,
-        referral_count INTEGER DEFAULT 0,
-        unlocked INTEGER DEFAULT 0
+    CREATE TABLE IF NOT EXISTS test_access (
+        user_id INTEGER NOT NULL,
+        test_key TEXT NOT NULL,
+        unlocked INTEGER DEFAULT 0,
+        PRIMARY KEY (user_id, test_key)
     )
     """
 )
 
+# Yangi referal uchun vaqtinchalik bog‘lanish.
+# invited_user_id UNIQUE: bir odam faqat bitta test uchun bir marta referal bo‘la oladi.
 db.execute(
     """
-    CREATE TABLE IF NOT EXISTS book2_referrals (
+    CREATE TABLE IF NOT EXISTS test_referrals (
         invited_user_id INTEGER PRIMARY KEY,
         referrer_id INTEGER NOT NULL,
+        test_key TEXT NOT NULL,
         confirmed INTEGER DEFAULT 0
     )
     """
 )
+
 db.commit()
 
 timeout_tasks = {}
 
 
-def add_user(user_id, full_name=None, username=None, referrer_id=None):
+def add_user(user_id, full_name=None, username=None):
     existing = db.execute("SELECT * FROM users WHERE user_id=?", (user_id,)).fetchone()
     if existing:
         db.execute(
@@ -422,8 +430,8 @@ def add_user(user_id, full_name=None, username=None, referrer_id=None):
         )
     else:
         db.execute(
-            "INSERT INTO users (user_id, full_name, username, referrer_id) VALUES (?, ?, ?, ?)",
-            (user_id, full_name, username, referrer_id),
+            "INSERT INTO users (user_id, full_name, username) VALUES (?, ?, ?)",
+            (user_id, full_name, username),
         )
     db.commit()
 
@@ -437,155 +445,82 @@ def mark_verified(user_id):
     db.commit()
 
 
-def add_referral(referrer_id):
-    db.execute("UPDATE users SET referral_count=referral_count+1 WHERE user_id=?", (referrer_id,))
-    db.commit()
-
-
-def mark_reward_given(user_id):
-    db.execute("UPDATE users SET reward_given=1 WHERE user_id=?", (user_id,))
-    db.commit()
-
-
-def grant_existing_access(user_id):
-    # Asosiy kanalga oldindan kirgan foydalanuvchi qayta referal qilmaydi.
+def ensure_test_access(user_id, test_key):
     db.execute(
-        "UPDATE users SET verified=1, reward_given=1 WHERE user_id=?",
-        (user_id,),
+        "INSERT OR IGNORE INTO test_access (user_id, test_key, unlocked) VALUES (?, ?, 0)",
+        (user_id, test_key),
     )
     db.commit()
 
 
-
-def ensure_book2_access(user_id):
-    db.execute(
-        "INSERT OR IGNORE INTO book2_access (user_id, referral_count, unlocked) VALUES (?, 0, 0)",
-        (user_id,),
-    )
-    db.commit()
-
-
-def get_book2_access(user_id):
-    ensure_book2_access(user_id)
-    return db.execute("SELECT * FROM book2_access WHERE user_id=?", (user_id,)).fetchone()
-
-
-def create_book2_pending_referral(invited_user_id, referrer_id, invited_was_existing):
-    # 2-kitob uchun faqat botdan avval foydalanmagan YANGI odam sanaladi.
-    if invited_was_existing or invited_user_id == referrer_id:
-        return False
-
-    existing = db.execute(
-        "SELECT * FROM book2_referrals WHERE invited_user_id=?",
-        (invited_user_id,),
-    ).fetchone()
-    if existing:
-        return False
-
-    db.execute(
-        "INSERT INTO book2_referrals (invited_user_id, referrer_id, confirmed) VALUES (?, ?, 0)",
-        (invited_user_id, referrer_id),
-    )
-    db.commit()
-    return True
-
-
-async def confirm_book2_referral(invited_user_id):
-    row = db.execute(
-        "SELECT * FROM book2_referrals WHERE invited_user_id=?",
-        (invited_user_id,),
-    ).fetchone()
-    if not row or row["confirmed"]:
-        return
-
-    referrer_id = row["referrer_id"]
-    ensure_book2_access(referrer_id)
-
-    db.execute(
-        "UPDATE book2_referrals SET confirmed=1 WHERE invited_user_id=?",
-        (invited_user_id,),
-    )
-    db.execute(
-        "UPDATE book2_access SET referral_count=referral_count+1 WHERE user_id=?",
-        (referrer_id,),
-    )
-
-    access = db.execute(
-        "SELECT * FROM book2_access WHERE user_id=?",
-        (referrer_id,),
+def get_test_access(user_id, test_key):
+    ensure_test_access(user_id, test_key)
+    return db.execute(
+        "SELECT * FROM test_access WHERE user_id=? AND test_key=?",
+        (user_id, test_key),
     ).fetchone()
 
-    if access["referral_count"] >= 1:
-        db.execute(
-            "UPDATE book2_access SET unlocked=1 WHERE user_id=?",
-            (referrer_id,),
-        )
+
+def unlock_test(user_id, test_key):
+    ensure_test_access(user_id, test_key)
+    db.execute(
+        "UPDATE test_access SET unlocked=1 WHERE user_id=? AND test_key=?",
+        (user_id, test_key),
+    )
     db.commit()
-
-    access = get_book2_access(referrer_id)
-    try:
-        if access["unlocked"]:
-            start_keyboard = InlineKeyboardMarkup(
-                inline_keyboard=[
-                    [InlineKeyboardButton(
-                        text="📗 2-kitob testini boshlash",
-                        callback_data="start_test2"
-                    )]
-                ]
-            )
-            await bot.send_message(
-                referrer_id,
-                "🎉 2-kitob uchun yangi referalingiz tasdiqlandi!\n\n"
-                "📗 Endi 2-kitob testini boshlashingiz mumkin.",
-                reply_markup=start_keyboard,
-            )
-    except Exception:
-        pass
-
-
-async def send_book2_referral_post(chat_id, user_id):
-    ensure_book2_access(user_id)
-    me = await bot.get_me()
-    ref_link = f"https://t.me/{me.username}?start=b2_{user_id}"
-
-    caption = (
-        "📗 2-KITOB TESTINI OCHISH UCHUN 1 TA YANGI REFERAL KERAK.\n\n"
-        "Quyidagi shaxsiy havolangizni hali botimizdan foydalanmagan 1 nafar do‘stingizga yuboring. "
-        "U havola orqali botga kirib, 4 ta majburiy kanalga a’zo bo‘lib a’zoligini tasdiqlashi kerak.\n\n"
-        "✅ Oldingi kitob uchun qilgan referalingiz bu safar hisoblanmaydi.\n"
-        "✅ 2-kitob uchun yangi referal alohida sanaladi.\n\n"
-        f"🔗 Sizning 2-kitob referal havolangiz:\n{ref_link}"
-    )
-
-    share_url = (
-        f"https://t.me/share/url?url={quote(ref_link)}"
-        f"&text={quote('Zohida Akademy — Har hafta bir kitob loyihasiga qo‘shiling!')}"
-    )
-    keyboard = InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text="📤 Do‘stga yuborish", url=share_url)],
-            [InlineKeyboardButton(text="🔄 2-kitob referalini tekshirish", callback_data="check_referral2")],
-        ]
-    )
-
-    photo_path = os.path.join(os.path.dirname(__file__), REFERRAL_PHOTO)
-    if os.path.exists(photo_path):
-        await bot.send_photo(chat_id, FSInputFile(photo_path), caption=caption, reply_markup=keyboard)
-    else:
-        await bot.send_message(chat_id, caption, reply_markup=keyboard)
 
 
 def required_channels_keyboard():
-    rows = [[InlineKeyboardButton(text=ch["name"], url=ch["link"])] for ch in CHANNELS]
-    rows.append([InlineKeyboardButton(text="✅ A’zo bo‘ldim", callback_data="check_channels")])
+    rows = [
+        [InlineKeyboardButton(text=ch["name"], url=ch["link"])]
+        for ch in CHANNELS
+    ]
+    rows.append(
+        [InlineKeyboardButton(text="✅ A’zo bo‘ldim", callback_data="check_channels")]
+    )
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
 def test_menu_keyboard():
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="📘 1-kitob testi", callback_data="start_test")],
-            [InlineKeyboardButton(text="📗 2-kitob testi", callback_data="start_test2")],
+            [InlineKeyboardButton(text="📘 1-kitob testi", callback_data="choose_test:t1")],
+            [InlineKeyboardButton(text="📗 2-kitob testi", callback_data="choose_test:t2")],
+        ]
+    )
+
+
+def final_channel_check_keyboard(test_key, invite_link=None):
+    rows = []
+    if invite_link:
+        rows.append([
+            InlineKeyboardButton(
+                text="🔐 Yopiq kanalga kirish",
+                url=invite_link
+            )
+        ])
+
+    rows.append([
+        InlineKeyboardButton(
+            text="✅ Kanalga kirdim — tekshirish",
+            callback_data=f"verify_final:{test_key}"
+        )
+    ])
+
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def actual_start_keyboard(test_key):
+    if test_key == "t1":
+        text = "📘 1-kitob testini boshlash"
+        cb = "start_test"
+    else:
+        text = "📗 2-kitob testini boshlash"
+        cb = "start_test2"
+
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text=text, callback_data=cb)]
         ]
     )
 
@@ -609,317 +544,413 @@ async def is_final_channel_member(user_id):
         return False
 
 
-async def give_access(user_id, chat_id):
-    user = get_user(user_id)
-    if not user:
-        return
-
-    if user["reward_given"]:
+async def send_final_channel_and_start(user_id, test_key):
+    # Referal tasdiqlangach test darhol ochilmaydi.
+    # Avval foydalanuvchi yopiq kanalga kiradi, so‘ng bot a’zolikni tekshiradi.
+    if await is_final_channel_member(user_id):
         await bot.send_message(
-            chat_id,
-            "✅ Sizda asosiy kanalga kirish huquqi mavjud.\n\n"
-            "Quyidan kerakli kitob testini tanlang:",
-            reply_markup=test_menu_keyboard(),
+            user_id,
+            "🎉 Referalingiz tasdiqlandi!\n\n"
+            "✅ Siz yopiq kitobxonlik kanaliga a’zosiz.\n"
+            "Endi testni boshlashingiz mumkin.",
+            reply_markup=actual_start_keyboard(test_key),
         )
         return
 
-    expire = datetime.now(timezone.utc) + timedelta(hours=24)
-    invite = await bot.create_chat_invite_link(
-        chat_id=FINAL_CHANNEL_ID,
-        expire_date=expire,
-        member_limit=1,
-        name=f"user_{user_id}",
-    )
-    mark_reward_given(user_id)
+    try:
+        expire = datetime.now(timezone.utc) + timedelta(hours=24)
+        invite = await bot.create_chat_invite_link(
+            chat_id=FINAL_CHANNEL_ID,
+            expire_date=expire,
+            member_limit=1,
+            name=f"{test_key}_{user_id}",
+        )
 
-    await bot.send_message(
-        chat_id,
-        "🎉 Tabriklaymiz! Referal sharti bajarildi.\n\n"
-        "Quyidagi havola orqali kitobxonlik kanaliga kiring. "
-        "Havola 24 soat amal qiladi va bir kishi uchun mo‘ljallangan:\n\n"
-        f"{invite.invite_link}\n\n"
-        "Kanalga kirganingizdan keyin testni shu botda ishlashingiz mumkin.",
-        reply_markup=test_menu_keyboard(),
-    )
+        await bot.send_message(
+            user_id,
+            "🎉 Referalingiz tasdiqlandi!\n\n"
+            "1️⃣ Avval yopiq kitobxonlik kanaliga kiring.\n"
+            "2️⃣ So‘ng “✅ Kanalga kirdim — tekshirish” tugmasini bosing.\n"
+            "3️⃣ A’zoligingiz tasdiqlangach testni boshlash tugmasi chiqadi.\n\n"
+            "⏳ Kanal havolasi 24 soat amal qiladi va 1 kishi uchun.",
+            reply_markup=final_channel_check_keyboard(
+                test_key,
+                invite.invite_link
+            ),
+        )
+    except Exception as e:
+        print("Invite link error:", e)
+        await bot.send_message(
+            user_id,
+            "⚠️ Yopiq kanalga taklif havolasini yaratishda xatolik yuz berdi.\n"
+            "Botning yopiq kanalda administrator ekanini tekshiring."
+        )
 
 
-async def send_referral_post(chat_id, user_id):
+async def send_test_referral_post(chat_id, user_id, test_key):
     me = await bot.get_me()
-    ref_link = f"https://t.me/{me.username}?start={user_id}"
+    payload = f"{test_key}_{user_id}"
+    ref_link = f"https://t.me/{me.username}?start={payload}"
+
+    test_name = "1-kitob testi" if test_key == "t1" else "2-kitob testi"
 
     caption = (
-        "📚 HAR HAFTA KITOB O‘QING VA SOVRINLARNI QO‘LGA KIRITING!\n\n"
-        "Blogim obunachilari uchun kitobxonlik loyihasi! 🥳\n\n"
-        "Birgalikda har hafta kitob o‘qiymiz va o‘qilgan asar bo‘yicha test ishlaymiz. "
-        "Eng yuqori natija ko‘rsatgan ishtirokchilar sovrinlarni qo‘lga kiritadi! 🏆\n\n"
-        "👇 Konkursda ishtirok etish uchun quyidagi havola orqali qo‘shiling:\n"
-        f"{ref_link}"
+        f"📚 {test_name.upper()} UCHUN 1 TA YANGI REFERAL KERAK.\n\n"
+        "Shaxsiy havolangizni hali bu botdan foydalanmagan yangi odamga yuboring. "
+        "U havola orqali botga kirib, 4 ta majburiy kanalga a’zo bo‘lib "
+        "“✅ A’zo bo‘ldim” tugmasini bosishi kerak.\n\n"
+        "⚠️ Oldin botdan foydalangan yoki avval referal sifatida ishlatilgan odam "
+        "yangi referal hisoblanmaydi.\n\n"
+        f"🔗 Sizning referal havolangiz:\n{ref_link}"
     )
 
     share_url = (
         f"https://t.me/share/url?url={quote(ref_link)}"
-        f"&text={quote('Kitobxonlik loyihasiga qo‘shiling!')}"
+        f"&text={quote('Zohida Akademy — Har hafta bir kitob loyihasiga qo‘shiling!')}"
     )
+
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text="📤 Do‘stga yuborish", url=share_url)],
-            [InlineKeyboardButton(text="🔄 Referalni tekshirish", callback_data="check_referral")],
+            [InlineKeyboardButton(
+                text="🔄 Referalni tekshirish",
+                callback_data=f"check_test_ref:{test_key}"
+            )],
         ]
     )
 
     photo_path = os.path.join(os.path.dirname(__file__), REFERRAL_PHOTO)
     if os.path.exists(photo_path):
-        await bot.send_photo(chat_id, FSInputFile(photo_path), caption=caption, reply_markup=keyboard)
+        await bot.send_photo(
+            chat_id,
+            FSInputFile(photo_path),
+            caption=caption,
+            reply_markup=keyboard,
+        )
     else:
         await bot.send_message(chat_id, caption, reply_markup=keyboard)
 
 
-async def after_verification(user_id, chat_id):
-    # Agar foydalanuvchi asosiy kanalga avvaldan a’zo bo‘lsa,
-    # yangi deploy yoki DB holatidan qat’i nazar qayta referal talab qilinmaydi.
-    if await is_final_channel_member(user_id):
-        grant_existing_access(user_id)
-        await bot.send_message(
-            chat_id,
-            "✅ Siz loyiha ishtirokchisisiz.\n\nKerakli testni tanlang:",
-            reply_markup=test_menu_keyboard(),
-        )
-        return
+def create_pending_test_referral(invited_user_id, referrer_id, test_key, was_existing):
+    if was_existing:
+        return False
+    if invited_user_id == referrer_id:
+        return False
+    if test_key not in {"t1", "t2"}:
+        return False
+    if not get_user(referrer_id):
+        return False
 
-    user = get_user(user_id)
-    if not user:
-        return
+    # Bir odam butun loyiha bo‘yicha faqat bir marta referal bo‘la oladi.
+    existing = db.execute(
+        "SELECT * FROM test_referrals WHERE invited_user_id=?",
+        (invited_user_id,),
+    ).fetchone()
+    if existing:
+        return False
 
-    if user["referral_count"] >= REFERRAL_TARGET:
-        await give_access(user_id, chat_id)
-    else:
-        await bot.send_message(
-            chat_id,
-            "✅ A’zolik tasdiqlandi!\n\n"
-            "Endi 1 nafar do‘stingizni shaxsiy havolangiz orqali taklif qiling. "
-            "U ham 4 ta kanalga a’zo bo‘lib, a’zoligini tasdiqlashi kerak.",
-        )
-        await send_referral_post(chat_id, user_id)
+    db.execute(
+        """
+        INSERT INTO test_referrals
+        (invited_user_id, referrer_id, test_key, confirmed)
+        VALUES (?, ?, ?, 0)
+        """,
+        (invited_user_id, referrer_id, test_key),
+    )
+    db.commit()
+    return True
 
+
+async def confirm_pending_test_referral(invited_user_id):
+    row = db.execute(
+        "SELECT * FROM test_referrals WHERE invited_user_id=?",
+        (invited_user_id,),
+    ).fetchone()
+
+    if not row or row["confirmed"]:
+        return False
+
+    # Yangi odam 4 ta majburiy kanalga haqiqatan a’zo bo‘lgandagina tasdiqlanadi.
+    if not await is_member_of_required_channels(invited_user_id):
+        return False
+
+    db.execute(
+        "UPDATE test_referrals SET confirmed=1 WHERE invited_user_id=?",
+        (invited_user_id,),
+    )
+    unlock_test(row["referrer_id"], row["test_key"])
+    db.commit()
+
+    await send_final_channel_and_start(row["referrer_id"], row["test_key"])
+    return True
+
+
+# -------------------- START / A’ZOLIK --------------------
 
 @dp.message(CommandStart())
 async def start_handler(message: Message):
     user_id = message.from_user.id
-    referrer_id = None
-    book2_referrer_id = None
 
-    invited_was_existing = get_user(user_id) is not None
-    invited_was_final_member = await is_final_channel_member(user_id)
+    # Referal "yangi odam" bo‘lishi uchun botda avval ro‘yxatdan o‘tmagan bo‘lishi kerak.
+    was_existing = get_user(user_id) is not None
+
+    test_key = None
+    referrer_id = None
 
     parts = message.text.split(maxsplit=1)
     if len(parts) == 2:
         payload = parts[1].strip()
-
-        if payload.startswith("b2_"):
+        if payload.startswith("t1_") or payload.startswith("t2_"):
             try:
-                possible_referrer = int(payload[3:])
-                if possible_referrer != user_id and get_user(possible_referrer):
-                    book2_referrer_id = possible_referrer
-            except ValueError:
-                pass
-        else:
-            try:
-                possible_referrer = int(payload)
-                if possible_referrer != user_id:
-                    referrer_id = possible_referrer
-            except ValueError:
-                pass
+                test_key, rid = payload.split("_", 1)
+                referrer_id = int(rid)
+            except Exception:
+                test_key = None
+                referrer_id = None
 
-    add_user(user_id, message.from_user.full_name, message.from_user.username, referrer_id)
+    add_user(user_id, message.from_user.full_name, message.from_user.username)
 
-    if book2_referrer_id and not invited_was_existing and not invited_was_final_member:
-        create_book2_pending_referral(
+    if test_key and referrer_id:
+        create_pending_test_referral(
             invited_user_id=user_id,
-            referrer_id=book2_referrer_id,
-            invited_was_existing=False,
+            referrer_id=referrer_id,
+            test_key=test_key,
+            was_existing=was_existing,
         )
-
-    if invited_was_final_member:
-        grant_existing_access(user_id)
-        db.execute("DELETE FROM book2_referrals WHERE invited_user_id=? AND confirmed=0", (user_id,))
-        db.commit()
-
-        await message.answer(
-            "📚 Xush kelibsiz! Siz asosiy kanal a’zosisiz.\n\n"
-            "📘 1-kitob testi avvalgi tartibda ishlaydi.\n"
-            "📗 2-kitob testi uchun 1 ta yangi referal talab qilinadi.\n\n"
-            "Kerakli testni tanlang:",
-            reply_markup=test_menu_keyboard(),
-        )
-        return
 
     if not await is_member_of_required_channels(user_id):
         await message.answer(
-            "Assalomu alaykum! Konkursda qatnashish uchun avval quyidagi 4 ta kanalga a’zo bo‘ling.",
+            "📚 Zohida Akademy — “Har hafta bir kitob” loyihasiga xush kelibsiz!\n\n"
+            "Avval quyidagi 4 ta kanalga a’zo bo‘ling. "
+            "So‘ng “✅ A’zo bo‘ldim” tugmasini bosing.",
             reply_markup=required_channels_keyboard(),
         )
         return
 
-    user = get_user(user_id)
-    if not user["verified"]:
-        mark_verified(user_id)
-        user = get_user(user_id)
-        rid = user["referrer_id"]
-        if rid and get_user(rid):
-            add_referral(rid)
-            try:
-                ref_user = get_user(rid)
-                await bot.send_message(
-                    rid,
-                    f"🎉 Yangi referal tasdiqlandi!\nReferallaringiz: {ref_user['referral_count']}/{REFERRAL_TARGET}",
-                )
-            except Exception:
-                pass
+    mark_verified(user_id)
+    await confirm_pending_test_referral(user_id)
 
-    await confirm_book2_referral(user_id)
-    await after_verification(user_id, message.chat.id)
+    await message.answer(
+        "✅ Kanal a’zoligingiz tasdiqlandi.\n\n"
+        "Endi ishlamoqchi bo‘lgan testni tanlang:",
+        reply_markup=test_menu_keyboard(),
+    )
 
 
 @dp.callback_query(F.data == "check_channels")
 async def check_channels_callback(callback: CallbackQuery):
     user_id = callback.from_user.id
-    add_user(user_id, callback.from_user.full_name, callback.from_user.username, None)
+    add_user(user_id, callback.from_user.full_name, callback.from_user.username)
 
-    if await is_final_channel_member(user_id):
-        grant_existing_access(user_id)
-        db.execute("DELETE FROM book2_referrals WHERE invited_user_id=? AND confirmed=0", (user_id,))
-        db.commit()
-
-        await callback.answer("✅ Siz avvaldan loyiha ishtirokchisisiz!")
-        await bot.send_message(
-            callback.message.chat.id,
-            "Kerakli testni tanlang:",
-            reply_markup=test_menu_keyboard(),
+    if not await is_member_of_required_channels(user_id):
+        await callback.answer(
+            "❌ Hali barcha 4 ta kanalga a’zo emassiz.",
+            show_alert=True,
         )
         return
 
-    user = get_user(user_id)
-    if not await is_member_of_required_channels(user_id):
-        await callback.answer("❌ Hali barcha kanallarga a’zo emassiz.", show_alert=True)
-        return
-
-    if not user["verified"]:
-        mark_verified(user_id)
-        user = get_user(user_id)
-        rid = user["referrer_id"]
-        if rid and get_user(rid):
-            add_referral(rid)
-            try:
-                ref_user = get_user(rid)
-                await bot.send_message(
-                    rid,
-                    f"🎉 Yangi referal tasdiqlandi!\nReferallaringiz: {ref_user['referral_count']}/{REFERRAL_TARGET}",
-                )
-            except Exception:
-                pass
-
-    await confirm_book2_referral(user_id)
+    mark_verified(user_id)
+    await confirm_pending_test_referral(user_id)
 
     await callback.answer("✅ A’zolik tasdiqlandi!")
-    await after_verification(user_id, callback.message.chat.id)
+    await bot.send_message(
+        callback.message.chat.id,
+        "📚 Endi ishlamoqchi bo‘lgan testni tanlang:",
+        reply_markup=test_menu_keyboard(),
+    )
 
 
-@dp.callback_query(F.data == "check_referral")
-async def check_referral_callback(callback: CallbackQuery):
-    user_id = callback.from_user.id
-
-    if await is_final_channel_member(user_id):
-        grant_existing_access(user_id)
-        await callback.answer("✅ Sizda kirish huquqi bor!")
-        await bot.send_message(
-            callback.message.chat.id,
-            "Kerakli testni tanlang:",
-            reply_markup=test_menu_keyboard(),
+@dp.message(Command("tests"))
+async def tests_handler(message: Message):
+    if not await is_member_of_required_channels(message.from_user.id):
+        await message.answer(
+            "Avval 4 ta majburiy kanalga a’zo bo‘ling.",
+            reply_markup=required_channels_keyboard(),
         )
         return
 
-    user = get_user(user_id)
-    if not user:
-        await callback.answer("Avval /start bosing.", show_alert=True)
+    await message.answer(
+        "📚 Kerakli testni tanlang:",
+        reply_markup=test_menu_keyboard(),
+    )
+
+
+# -------------------- TEST TANLASH / REFERAL --------------------
+
+@dp.callback_query(F.data.startswith("choose_test:"))
+async def choose_test_callback(callback: CallbackQuery):
+    user_id = callback.from_user.id
+    test_key = callback.data.split(":", 1)[1]
+
+    if test_key not in {"t1", "t2"}:
         return
 
-    if user["referral_count"] >= REFERRAL_TARGET:
-        await callback.answer("✅ Referal sharti bajarildi!")
-        await give_access(user_id, callback.message.chat.id)
-    else:
+    if not await is_member_of_required_channels(user_id):
         await callback.answer(
-            f"Hozircha {user['referral_count']}/{REFERRAL_TARGET} ta referal.",
+            "Avval 4 ta majburiy kanalga a’zo bo‘ling.",
             show_alert=True,
         )
+        return
 
+    # O‘sha test allaqachon tugatilgan bo‘lsa qayta ishlanmaydi.
+    if test_key == "t1":
+        attempt = db.execute(
+            "SELECT * FROM attempts WHERE user_id=?",
+            (user_id,),
+        ).fetchone()
+        if attempt and attempt["completed"]:
+            await callback.answer(
+                "Siz 1-kitob testini avval ishlagansiz.",
+                show_alert=True,
+            )
+            return
+    else:
+        attempt = db.execute(
+            "SELECT * FROM attempts2 WHERE user_id=?",
+            (user_id,),
+        ).fetchone()
+        if attempt and attempt["completed"]:
+            await callback.answer(
+                "Siz 2-kitob testini avval ishlagansiz.",
+                show_alert=True,
+            )
+            return
 
-@dp.callback_query(F.data == "check_referral2")
-async def check_referral2_callback(callback: CallbackQuery):
-    user_id = callback.from_user.id
-    access = get_book2_access(user_id)
+    access = get_test_access(user_id, test_key)
 
     if access["unlocked"]:
-        await callback.answer("✅ 2-kitob testi ochildi!")
-        start_keyboard = InlineKeyboardMarkup(
-            inline_keyboard=[
-                [InlineKeyboardButton(
-                    text="📗 2-kitob testini boshlash",
-                    callback_data="start_test2"
-                )]
-            ]
-        )
-        await bot.send_message(
-            callback.message.chat.id,
-            "📗 2-kitob uchun referal sharti bajarildi.\n\n"
-            "Quyidagi tugmani bosib testni boshlang.",
-            reply_markup=start_keyboard,
-        )
+        await callback.answer("✅ Bu test siz uchun ochiq.")
+        await send_final_channel_and_start(user_id, test_key)
+        return
+
+    await callback.answer("🔐 Avval 1 ta yangi referal kerak.", show_alert=True)
+    await send_test_referral_post(callback.message.chat.id, user_id, test_key)
+
+
+@dp.callback_query(F.data.startswith("check_test_ref:"))
+async def check_test_ref_callback(callback: CallbackQuery):
+    user_id = callback.from_user.id
+    test_key = callback.data.split(":", 1)[1]
+
+    access = get_test_access(user_id, test_key)
+    if access["unlocked"]:
+        await callback.answer("✅ Referalingiz tasdiqlangan!")
+        await send_final_channel_and_start(user_id, test_key)
     else:
         await callback.answer(
-            f"📗 2-kitob referali: {access['referral_count']}/1\n"
-            "Hali 1 ta yangi odamning a’zoligi tasdiqlanishi kerak.",
+            "⏳ Hali yangi referalingiz tasdiqlanmadi.\n"
+            "Taklif qilgan odam 4 ta kanalga a’zo bo‘lib “A’zo bo‘ldim”ni bosishi kerak.",
             show_alert=True,
         )
 
 
-# -------------------- 1-KITOB TESTI (ESKI TEST) --------------------
+@dp.callback_query(F.data.startswith("verify_final:"))
+async def verify_final_channel_callback(callback: CallbackQuery):
+    user_id = callback.from_user.id
+    test_key = callback.data.split(":", 1)[1]
+
+    if test_key not in {"t1", "t2"}:
+        return
+
+    access = get_test_access(user_id, test_key)
+    if not access["unlocked"]:
+        await callback.answer(
+            "Avval shu test uchun referal shartini bajaring.",
+            show_alert=True,
+        )
+        return
+
+    if not await is_final_channel_member(user_id):
+        await callback.answer(
+            "❌ Siz hali yopiq kanalga kirmagansiz.\n"
+            "Avval kanalga kiring, keyin yana tekshiring.",
+            show_alert=True,
+        )
+        return
+
+    await callback.answer("✅ Yopiq kanal a’zoligingiz tasdiqlandi!")
+    await bot.send_message(
+        callback.message.chat.id,
+        "✅ A’zoligingiz tasdiqlandi.\n\n"
+        "Endi testni boshlashingiz mumkin.",
+        reply_markup=actual_start_keyboard(test_key),
+    )
+
+
+# -------------------- 1-KITOB TESTI --------------------
 
 def question_keyboard(question_index):
-    labels = ["A", "B", "C", "D"]
-    rows = []
-    for i, option in enumerate(QUESTIONS[question_index]["options"]):
-        rows.append(
-            [InlineKeyboardButton(
-                text=f"{labels[i]}) {option}",
-                callback_data=f"answer:{question_index}:{i}",
-            )]
-        )
-    return InlineKeyboardMarkup(inline_keyboard=rows)
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="A", callback_data=f"answer:{question_index}:0"),
+                InlineKeyboardButton(text="B", callback_data=f"answer:{question_index}:1"),
+                InlineKeyboardButton(text="C", callback_data=f"answer:{question_index}:2"),
+                InlineKeyboardButton(text="D", callback_data=f"answer:{question_index}:3"),
+            ]
+        ]
+    )
 
 
 async def send_question(chat_id, question_index):
     q = QUESTIONS[question_index]
-    await bot.send_message(chat_id, q["q"], reply_markup=question_keyboard(question_index))
+    opts = q["options"]
+
+    question_text = (
+        f"{q['q']}\n\n"
+        f"A) {opts[0]}\n\n"
+        f"B) {opts[1]}\n\n"
+        f"C) {opts[2]}\n\n"
+        f"D) {opts[3]}"
+    )
+
+    await bot.send_message(
+        chat_id,
+        question_text,
+        reply_markup=question_keyboard(question_index),
+    )
 
 
 @dp.callback_query(F.data == "start_test")
 async def start_test_callback(callback: CallbackQuery):
     user_id = callback.from_user.id
 
-    if not await is_final_channel_member(user_id):
-        await callback.answer("Avval kitobxonlik kanaliga kiring.", show_alert=True)
+    access = get_test_access(user_id, "t1")
+    if not access["unlocked"]:
+        await callback.answer(
+            "🔐 1-kitob testi uchun avval 1 ta yangi referal kerak.",
+            show_alert=True,
+        )
+        await send_test_referral_post(callback.message.chat.id, user_id, "t1")
         return
 
-    grant_existing_access(user_id)
+    if not await is_final_channel_member(user_id):
+        await callback.answer(
+            "❌ Avval yopiq kitobxonlik kanaliga kiring.",
+            show_alert=True,
+        )
+        await send_final_channel_and_start(user_id, "t1")
+        return
 
-    attempt = db.execute("SELECT * FROM attempts WHERE user_id=?", (user_id,)).fetchone()
+    attempt = db.execute(
+        "SELECT * FROM attempts WHERE user_id=?",
+        (user_id,),
+    ).fetchone()
+
     if attempt and attempt["completed"]:
-        await callback.answer("Siz 1-kitob testini avval ishlagansiz.", show_alert=True)
+        await callback.answer(
+            "Siz 1-kitob testini avval ishlagansiz.",
+            show_alert=True,
+        )
         return
 
     if not attempt:
         db.execute(
-            "INSERT INTO attempts (user_id, current_question, score, started_at, completed) VALUES (?, 0, 0, ?, 0)",
+            """
+            INSERT INTO attempts
+            (user_id, current_question, score, started_at, completed)
+            VALUES (?, 0, 0, ?, 0)
+            """,
             (user_id, datetime.now(timezone.utc).isoformat()),
         )
         db.commit()
@@ -934,7 +965,10 @@ async def start_test_callback(callback: CallbackQuery):
 @dp.callback_query(F.data.startswith("answer:"))
 async def answer_callback(callback: CallbackQuery):
     user_id = callback.from_user.id
-    attempt = db.execute("SELECT * FROM attempts WHERE user_id=?", (user_id,)).fetchone()
+    attempt = db.execute(
+        "SELECT * FROM attempts WHERE user_id=?",
+        (user_id,),
+    ).fetchone()
 
     if not attempt or attempt["completed"]:
         await callback.answer("Test faol emas.", show_alert=True)
@@ -945,10 +979,16 @@ async def answer_callback(callback: CallbackQuery):
     selected = int(answer_text)
 
     if q_index != attempt["current_question"]:
-        await callback.answer("Bu savolga javob allaqachon qabul qilingan.", show_alert=True)
+        await callback.answer(
+            "Bu savolga javob allaqachon qabul qilingan.",
+            show_alert=True,
+        )
         return
 
-    score = attempt["score"] + (1 if selected == QUESTIONS[q_index]["correct"] else 0)
+    score = attempt["score"]
+    if selected == QUESTIONS[q_index]["correct"]:
+        score += 1
+
     next_question = q_index + 1
 
     try:
@@ -959,7 +999,11 @@ async def answer_callback(callback: CallbackQuery):
     if next_question >= len(QUESTIONS):
         finished = datetime.now(timezone.utc)
         db.execute(
-            "UPDATE attempts SET current_question=?, score=?, finished_at=?, completed=1 WHERE user_id=?",
+            """
+            UPDATE attempts
+            SET current_question=?, score=?, finished_at=?, completed=1
+            WHERE user_id=?
+            """,
             (next_question, score, finished.isoformat(), user_id),
         )
         db.commit()
@@ -968,14 +1012,23 @@ async def answer_callback(callback: CallbackQuery):
         await callback.answer("Javob qabul qilindi.")
         await bot.send_message(
             callback.message.chat.id,
-            f"✅ 1-kitob testi yakunlandi!\n\nNatijangiz: {score}/{len(QUESTIONS)}\nFoiz: {percent}%\n\nNatijangiz saqlandi.",
+            "✅ 1-kitob testi yakunlandi!\n\n"
+            f"Natijangiz: {score}/{len(QUESTIONS)}\n"
+            f"Foiz: {percent}%\n\n"
+            "Natijangiz saqlandi.",
             reply_markup=test_menu_keyboard(),
         )
-        await notify_admin_result(user_id, "1-kitob", score, len(QUESTIONS))
+        await notify_admin_result(
+            user_id, "1-kitob", score, len(QUESTIONS)
+        )
         return
 
     db.execute(
-        "UPDATE attempts SET current_question=?, score=? WHERE user_id=?",
+        """
+        UPDATE attempts
+        SET current_question=?, score=?
+        WHERE user_id=?
+        """,
         (next_question, score, user_id),
     )
     db.commit()
@@ -984,7 +1037,7 @@ async def answer_callback(callback: CallbackQuery):
     await send_question(callback.message.chat.id, next_question)
 
 
-# -------------------- 2-KITOB TESTI: ARALASH + 20 DAQIQA --------------------
+# -------------------- 2-KITOB: 30 SAVOL, ARALASH, 20 DAQIQA --------------------
 
 def make_test2_attempt():
     q_order = list(range(len(TEST2_QUESTIONS)))
@@ -1007,26 +1060,33 @@ def test2_seconds_left(attempt):
     started = parse_dt(attempt["started_at"])
     if not started:
         return 0
+
     elapsed = (datetime.now(timezone.utc) - started).total_seconds()
-    return max(0, int(TEST2_TIME_LIMIT_MINUTES * 60 - elapsed))
+    return max(
+        0,
+        int(TEST2_TIME_LIMIT_MINUTES * 60 - elapsed)
+    )
 
 
 def test2_keyboard(step, q_idx, option_order):
-    labels = ["A", "B", "C", "D"]
-    rows = []
-    for displayed_pos, original_opt_idx in enumerate(option_order):
-        option_text = TEST2_QUESTIONS[q_idx]["options"][original_opt_idx]
-        rows.append(
-            [InlineKeyboardButton(
-                text=f"{labels[displayed_pos]}) {option_text}",
-                callback_data=f"t2answer:{step}:{displayed_pos}",
-            )]
-        )
-    return InlineKeyboardMarkup(inline_keyboard=rows)
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="A", callback_data=f"t2answer:{step}:0"),
+                InlineKeyboardButton(text="B", callback_data=f"t2answer:{step}:1"),
+                InlineKeyboardButton(text="C", callback_data=f"t2answer:{step}:2"),
+                InlineKeyboardButton(text="D", callback_data=f"t2answer:{step}:3"),
+            ]
+        ]
+    )
 
 
 async def send_test2_question(chat_id, user_id):
-    attempt = db.execute("SELECT * FROM attempts2 WHERE user_id=?", (user_id,)).fetchone()
+    attempt = db.execute(
+        "SELECT * FROM attempts2 WHERE user_id=?",
+        (user_id,),
+    ).fetchone()
+
     if not attempt or attempt["completed"]:
         return
 
@@ -1044,27 +1104,48 @@ async def send_test2_question(chat_id, user_id):
 
     q_idx = q_order[step]
     q = TEST2_QUESTIONS[q_idx]
+    order = option_orders[str(q_idx)]
+
     seconds_left = test2_seconds_left(attempt)
     mm, ss = divmod(seconds_left, 60)
 
-    await bot.send_message(
-        chat_id,
+    displayed_options = [q["options"][orig_idx] for orig_idx in order]
+
+    question_text = (
         f"📗 2-kitob testi\n"
         f"❓ Savol {step + 1}/{len(q_order)}\n"
         f"⏳ Qolgan vaqt: {mm:02d}:{ss:02d}\n\n"
-        f"{q['q']}",
-        reply_markup=test2_keyboard(step, q_idx, option_orders[str(q_idx)]),
+        f"{q['q']}\n\n"
+        f"A) {displayed_options[0]}\n\n"
+        f"B) {displayed_options[1]}\n\n"
+        f"C) {displayed_options[2]}\n\n"
+        f"D) {displayed_options[3]}"
+    )
+
+    await bot.send_message(
+        chat_id,
+        question_text,
+        reply_markup=test2_keyboard(step, q_idx, order),
     )
 
 
 async def finish_test2(user_id, chat_id, timed_out=False):
-    attempt = db.execute("SELECT * FROM attempts2 WHERE user_id=?", (user_id,)).fetchone()
+    attempt = db.execute(
+        "SELECT * FROM attempts2 WHERE user_id=?",
+        (user_id,),
+    ).fetchone()
+
     if not attempt or attempt["completed"]:
         return
 
     finished = datetime.now(timezone.utc)
+
     db.execute(
-        "UPDATE attempts2 SET finished_at=?, completed=1 WHERE user_id=?",
+        """
+        UPDATE attempts2
+        SET finished_at=?, completed=1
+        WHERE user_id=?
+        """,
         (finished.isoformat(), user_id),
     )
     db.commit()
@@ -1077,9 +1158,11 @@ async def finish_test2(user_id, chat_id, timed_out=False):
     started = parse_dt(attempt["started_at"])
     spent = int((finished - started).total_seconds()) if started else 0
     spent = min(spent, TEST2_TIME_LIMIT_MINUTES * 60)
+
     sm, ss = divmod(spent, 60)
 
     title = "⏰ Vaqt tugadi!" if timed_out else "✅ 2-kitob testi yakunlandi!"
+
     await bot.send_message(
         chat_id,
         f"{title}\n\n"
@@ -1089,7 +1172,14 @@ async def finish_test2(user_id, chat_id, timed_out=False):
         "Natijangiz saqlandi.",
         reply_markup=test_menu_keyboard(),
     )
-    await notify_admin_result(user_id, "2-kitob", score, total, spent)
+
+    await notify_admin_result(
+        user_id,
+        "2-kitob",
+        score,
+        total,
+        spent
+    )
 
     task = timeout_tasks.pop(user_id, None)
     if task and task is not asyncio.current_task():
@@ -1099,9 +1189,19 @@ async def finish_test2(user_id, chat_id, timed_out=False):
 async def timeout_test2(user_id, chat_id, seconds):
     try:
         await asyncio.sleep(seconds)
-        attempt = db.execute("SELECT * FROM attempts2 WHERE user_id=?", (user_id,)).fetchone()
+
+        attempt = db.execute(
+            "SELECT * FROM attempts2 WHERE user_id=?",
+            (user_id,),
+        ).fetchone()
+
         if attempt and not attempt["completed"]:
-            await finish_test2(user_id, chat_id, timed_out=True)
+            await finish_test2(
+                user_id,
+                chat_id,
+                timed_out=True
+            )
+
     except asyncio.CancelledError:
         pass
 
@@ -1110,78 +1210,144 @@ async def timeout_test2(user_id, chat_id, seconds):
 async def start_test2_callback(callback: CallbackQuery):
     user_id = callback.from_user.id
 
-    if not await is_final_channel_member(user_id):
-        await callback.answer("Avval kitobxonlik kanaliga kiring.", show_alert=True)
+    access = get_test_access(user_id, "t2")
+    if not access["unlocked"]:
+        await callback.answer(
+            "🔐 2-kitob testi uchun avval 1 ta yangi referal kerak.",
+            show_alert=True,
+        )
+        await send_test_referral_post(
+            callback.message.chat.id,
+            user_id,
+            "t2"
+        )
         return
 
-    grant_existing_access(user_id)
+    if not await is_final_channel_member(user_id):
+        await callback.answer(
+            "❌ Avval yopiq kitobxonlik kanaliga kiring.",
+            show_alert=True,
+        )
+        await send_final_channel_and_start(user_id, "t2")
+        return
 
-    attempt = db.execute("SELECT * FROM attempts2 WHERE user_id=?", (user_id,)).fetchone()
+    attempt = db.execute(
+        "SELECT * FROM attempts2 WHERE user_id=?",
+        (user_id,),
+    ).fetchone()
 
     if attempt and attempt["completed"]:
-        await callback.answer("Siz 2-kitob testini avval ishlagansiz.", show_alert=True)
-        return
-
-    access = get_book2_access(user_id)
-    if not access["unlocked"]:
-        await callback.answer("📗 2-kitob uchun 1 ta yangi referal kerak.", show_alert=True)
-        await send_book2_referral_post(callback.message.chat.id, user_id)
+        await callback.answer(
+            "Siz 2-kitob testini avval ishlagansiz.",
+            show_alert=True,
+        )
         return
 
     if not attempt:
         q_order, option_orders = make_test2_attempt()
         now = datetime.now(timezone.utc).isoformat()
+
         db.execute(
             """
             INSERT INTO attempts2
-            (user_id, current_question, score, started_at, completed, question_order, option_orders)
+            (user_id, current_question, score, started_at,
+             completed, question_order, option_orders)
             VALUES (?, 0, 0, ?, 0, ?, ?)
             """,
-            (user_id, now, json.dumps(q_order), json.dumps(option_orders)),
+            (
+                user_id,
+                now,
+                json.dumps(q_order),
+                json.dumps(option_orders),
+            ),
         )
         db.commit()
-        attempt = db.execute("SELECT * FROM attempts2 WHERE user_id=?", (user_id,)).fetchone()
+
+        attempt = db.execute(
+            "SELECT * FROM attempts2 WHERE user_id=?",
+            (user_id,),
+        ).fetchone()
 
     left = test2_seconds_left(attempt)
+
     if left <= 0:
-        await callback.answer("Test vaqti tugagan.", show_alert=True)
-        await finish_test2(user_id, callback.message.chat.id, timed_out=True)
+        await callback.answer(
+            "Test vaqti tugagan.",
+            show_alert=True,
+        )
+        await finish_test2(
+            user_id,
+            callback.message.chat.id,
+            timed_out=True
+        )
         return
 
     old_task = timeout_tasks.pop(user_id, None)
     if old_task:
         old_task.cancel()
-    timeout_tasks[user_id] = asyncio.create_task(timeout_test2(user_id, callback.message.chat.id, left))
+
+    timeout_tasks[user_id] = asyncio.create_task(
+        timeout_test2(
+            user_id,
+            callback.message.chat.id,
+            left
+        )
+    )
 
     await callback.answer()
-    await bot.send_message(
+
+    # Birinchi marta boshlangandagina qoidalarni ko‘rsatamiz.
+    if attempt["current_question"] == 0:
+        await bot.send_message(
+            callback.message.chat.id,
+            "📗 2-kitob testi boshlandi!\n\n"
+            "🔀 30 ta savol tartibi har bir ishtirokchi uchun aralashtiriladi.\n"
+            "🔀 A/B/C/D javob variantlari ham aralashtiriladi.\n"
+            f"⏳ Umumiy vaqt: {TEST2_TIME_LIMIT_MINUTES} daqiqa.\n"
+            "↩️ Oldingi savolga qaytib bo‘lmaydi.\n"
+            "✅ Har savolga faqat bir marta javob beriladi.",
+        )
+
+    await send_test2_question(
         callback.message.chat.id,
-        "📗 2-kitob testi boshlandi!\n\n"
-        "🔀 30 ta savolning tartibi har bir ishtirokchi uchun aralashtiriladi.\n"
-        "🔀 A/B/C/D javob variantlari ham har savolda aralashtiriladi.\n"
-        f"⏳ Umumiy vaqt: {TEST2_TIME_LIMIT_MINUTES} daqiqa.\n"
-        "↩️ Oldingi savolga qaytib bo‘lmaydi.\n"
-        "✅ Har savolga faqat bir marta javob beriladi.",
+        user_id
     )
-    await send_test2_question(callback.message.chat.id, user_id)
 
 
 @dp.callback_query(F.data.startswith("t2answer:"))
 async def test2_answer_callback(callback: CallbackQuery):
     user_id = callback.from_user.id
-    attempt = db.execute("SELECT * FROM attempts2 WHERE user_id=?", (user_id,)).fetchone()
+
+    attempt = db.execute(
+        "SELECT * FROM attempts2 WHERE user_id=?",
+        (user_id,),
+    ).fetchone()
 
     if not attempt or attempt["completed"]:
-        await callback.answer("2-kitob testi faol emas.", show_alert=True)
+        await callback.answer(
+            "2-kitob testi faol emas.",
+            show_alert=True,
+        )
         return
 
     if test2_seconds_left(attempt) <= 0:
-        await callback.answer("⏰ Vaqt tugadi.", show_alert=True)
+        await callback.answer(
+            "⏰ Vaqt tugadi.",
+            show_alert=True,
+        )
+
         try:
-            await callback.message.edit_reply_markup(reply_markup=None)
+            await callback.message.edit_reply_markup(
+                reply_markup=None
+            )
         except Exception:
             pass
-        await finish_test2(user_id, callback.message.chat.id, timed_out=True)
+
+        await finish_test2(
+            user_id,
+            callback.message.chat.id,
+            timed_out=True
+        )
         return
 
     _, step_text, displayed_pos_text = callback.data.split(":")
@@ -1189,7 +1355,10 @@ async def test2_answer_callback(callback: CallbackQuery):
     displayed_pos = int(displayed_pos_text)
 
     if step != attempt["current_question"]:
-        await callback.answer("Bu savolga javob allaqachon qabul qilingan.", show_alert=True)
+        await callback.answer(
+            "Bu savolga javob allaqachon qabul qilingan.",
+            show_alert=True,
+        )
         return
 
     q_order = json.loads(attempt["question_order"])
@@ -1199,16 +1368,25 @@ async def test2_answer_callback(callback: CallbackQuery):
     original_opt_idx = option_orders[str(q_idx)][displayed_pos]
     correct = TEST2_QUESTIONS[q_idx]["correct"]
 
-    score = attempt["score"] + (1 if original_opt_idx == correct else 0)
+    score = attempt["score"]
+    if original_opt_idx == correct:
+        score += 1
+
     next_step = step + 1
 
     try:
-        await callback.message.edit_reply_markup(reply_markup=None)
+        await callback.message.edit_reply_markup(
+            reply_markup=None
+        )
     except Exception:
         pass
 
     db.execute(
-        "UPDATE attempts2 SET current_question=?, score=? WHERE user_id=?",
+        """
+        UPDATE attempts2
+        SET current_question=?, score=?
+        WHERE user_id=?
+        """,
         (next_step, score, user_id),
     )
     db.commit()
@@ -1216,18 +1394,41 @@ async def test2_answer_callback(callback: CallbackQuery):
     await callback.answer("Javob qabul qilindi.")
 
     if next_step >= len(q_order):
-        await finish_test2(user_id, callback.message.chat.id)
+        await finish_test2(
+            user_id,
+            callback.message.chat.id
+        )
     else:
-        await send_test2_question(callback.message.chat.id, user_id)
+        await send_test2_question(
+            callback.message.chat.id,
+            user_id
+        )
 
 
-async def notify_admin_result(user_id, test_name, score, total, spent_seconds=None):
+# -------------------- NATIJALAR --------------------
+
+async def notify_admin_result(
+    user_id,
+    test_name,
+    score,
+    total,
+    spent_seconds=None
+):
     if user_id == ADMIN_ID:
         return
 
     user = get_user(user_id)
-    name = user["full_name"] if user and user["full_name"] else str(user_id)
-    username = f"@{user['username']}" if user and user["username"] else "username yo‘q"
+    name = (
+        user["full_name"]
+        if user and user["full_name"]
+        else str(user_id)
+    )
+    username = (
+        f"@{user['username']}"
+        if user and user["username"]
+        else "username yo‘q"
+    )
+
     percent = round(score / total * 100) if total else 0
 
     extra = ""
@@ -1238,7 +1439,7 @@ async def notify_admin_result(user_id, test_name, score, total, spent_seconds=No
     try:
         await bot.send_message(
             ADMIN_ID,
-            f"📊 Yangi test natijasi\n\n"
+            "📊 Yangi test natijasi\n\n"
             f"Test: {test_name}\n"
             f"Ishtirokchi: {name}\n"
             f"Telegram: {username}\n"
@@ -1249,31 +1450,6 @@ async def notify_admin_result(user_id, test_name, score, total, spent_seconds=No
         pass
 
 
-@dp.message(Command("tests"))
-async def tests_handler(message: Message):
-    if await is_final_channel_member(message.from_user.id):
-        grant_existing_access(message.from_user.id)
-        await message.answer("📚 Kerakli testni tanlang:", reply_markup=test_menu_keyboard())
-    else:
-        await message.answer("Avval /start orqali loyiha shartlarini bajaring.")
-
-
-@dp.message(Command("resetbook2"))
-async def reset_book2_handler(message: Message):
-    if message.from_user.id != ADMIN_ID:
-        return
-
-    db.execute("DELETE FROM book2_referrals")
-    db.execute("DELETE FROM book2_access")
-    db.execute("DELETE FROM attempts2")
-    db.commit()
-
-    await message.answer(
-        "✅ 2-kitob bo‘yicha referal va test ma’lumotlari tozalandi.\n"
-        "1-kitob natijalari va foydalanuvchilar bazasi saqlandi."
-    )
-
-
 @dp.message(Command("results"))
 async def results_handler(message: Message):
     if message.from_user.id != ADMIN_ID:
@@ -1281,7 +1457,8 @@ async def results_handler(message: Message):
 
     old_rows = db.execute(
         """
-        SELECT a.user_id, a.score, a.started_at, a.finished_at, u.full_name, u.username
+        SELECT a.user_id, a.score, a.started_at, a.finished_at,
+               u.full_name, u.username
         FROM attempts a
         LEFT JOIN users u ON u.user_id=a.user_id
         WHERE a.completed=1
@@ -1291,7 +1468,8 @@ async def results_handler(message: Message):
 
     new_rows = db.execute(
         """
-        SELECT a.user_id, a.score, a.started_at, a.finished_at, a.question_order, u.full_name, u.username
+        SELECT a.user_id, a.score, a.started_at, a.finished_at,
+               a.question_order, u.full_name, u.username
         FROM attempts2 a
         LEFT JOIN users u ON u.user_id=a.user_id
         WHERE a.completed=1
@@ -1305,58 +1483,149 @@ async def results_handler(message: Message):
     parts.append("\n📘 1-KITOB TESTI")
     if old_rows:
         for i, row in enumerate(old_rows, start=1):
-            username = f"@{row['username']}" if row["username"] else "—"
-            parts.append(f"{i}. {row['full_name'] or row['user_id']} — {row['score']}/{len(QUESTIONS)} — {username}")
+            username = (
+                f"@{row['username']}"
+                if row["username"]
+                else "—"
+            )
+            parts.append(
+                f"{i}. {row['full_name'] or row['user_id']} — "
+                f"{row['score']}/{len(QUESTIONS)} — {username}"
+            )
     else:
         parts.append("Hozircha natija yo‘q.")
 
     parts.append("\n📗 2-KITOB TESTI")
     if new_rows:
         for i, row in enumerate(new_rows, start=1):
-            username = f"@{row['username']}" if row["username"] else "—"
-            total = len(json.loads(row["question_order"])) if row["question_order"] else len(TEST2_QUESTIONS)
+            username = (
+                f"@{row['username']}"
+                if row["username"]
+                else "—"
+            )
+
+            total = (
+                len(json.loads(row["question_order"]))
+                if row["question_order"]
+                else len(TEST2_QUESTIONS)
+            )
+
             start = parse_dt(row["started_at"])
             end = parse_dt(row["finished_at"])
-            spent = int((end - start).total_seconds()) if start and end else 0
-            spent = min(spent, TEST2_TIME_LIMIT_MINUTES * 60)
+
+            spent = (
+                int((end - start).total_seconds())
+                if start and end
+                else 0
+            )
+            spent = min(
+                spent,
+                TEST2_TIME_LIMIT_MINUTES * 60
+            )
+
             mm, ss = divmod(spent, 60)
-            parts.append(f"{i}. {row['full_name'] or row['user_id']} — {row['score']}/{total} — {mm:02d}:{ss:02d} — {username}")
+
+            parts.append(
+                f"{i}. {row['full_name'] or row['user_id']} — "
+                f"{row['score']}/{total} — {mm:02d}:{ss:02d} — "
+                f"{username}"
+            )
     else:
         parts.append("Hozircha natija yo‘q.")
 
-    text = "\n".join(parts)
-    for i in range(0, len(text), 4000):
-        await message.answer(text[i:i+4000])
+    result_text = "\n".join(parts)
+
+    for i in range(0, len(result_text), 4000):
+        await message.answer(result_text[i:i + 4000])
 
 
 @dp.message(Command("myresult"))
 async def my_result_handler(message: Message):
     uid = message.from_user.id
-    old = db.execute("SELECT * FROM attempts WHERE user_id=? AND completed=1", (uid,)).fetchone()
-    new = db.execute("SELECT * FROM attempts2 WHERE user_id=? AND completed=1", (uid,)).fetchone()
+
+    old = db.execute(
+        """
+        SELECT * FROM attempts
+        WHERE user_id=? AND completed=1
+        """,
+        (uid,),
+    ).fetchone()
+
+    new = db.execute(
+        """
+        SELECT * FROM attempts2
+        WHERE user_id=? AND completed=1
+        """,
+        (uid,),
+    ).fetchone()
 
     lines = ["📊 SIZNING NATIJALARINGIZ"]
+
     if old:
-        p = round(old["score"] / len(QUESTIONS) * 100)
-        lines.append(f"\n📘 1-kitob: {old['score']}/{len(QUESTIONS)} ({p}%)")
+        p = round(
+            old["score"] / len(QUESTIONS) * 100
+        )
+        lines.append(
+            f"\n📘 1-kitob: "
+            f"{old['score']}/{len(QUESTIONS)} ({p}%)"
+        )
+
     if new:
-        total = len(json.loads(new["question_order"])) if new["question_order"] else len(TEST2_QUESTIONS)
+        total = (
+            len(json.loads(new["question_order"]))
+            if new["question_order"]
+            else len(TEST2_QUESTIONS)
+        )
         p = round(new["score"] / total * 100)
+
         start = parse_dt(new["started_at"])
         end = parse_dt(new["finished_at"])
-        spent = int((end - start).total_seconds()) if start and end else 0
-        spent = min(spent, TEST2_TIME_LIMIT_MINUTES * 60)
+
+        spent = (
+            int((end - start).total_seconds())
+            if start and end
+            else 0
+        )
+        spent = min(
+            spent,
+            TEST2_TIME_LIMIT_MINUTES * 60
+        )
+
         mm, ss = divmod(spent, 60)
-        lines.append(f"\n📗 2-kitob: {new['score']}/{total} ({p}%) — {mm:02d}:{ss:02d}")
+
+        lines.append(
+            f"\n📗 2-kitob: "
+            f"{new['score']}/{total} ({p}%) — "
+            f"{mm:02d}:{ss:02d}"
+        )
 
     if not old and not new:
-        lines.append("\nHali yakunlangan testingiz yo‘q.")
+        lines.append(
+            "\nHali yakunlangan testingiz yo‘q."
+        )
 
     await message.answer("\n".join(lines))
 
 
+# Sinov paytida faqat testga oid yangi referral-access yozuvlarini tozalash.
+# 1- va 2-kitob natijalari o‘chmaydi.
+@dp.message(Command("resetaccess"))
+async def reset_access_handler(message: Message):
+    if message.from_user.id != ADMIN_ID:
+        return
+
+    db.execute("DELETE FROM test_referrals")
+    db.execute("DELETE FROM test_access")
+    db.commit()
+
+    await message.answer(
+        "✅ Testlarga kirish uchun referal ma’lumotlari tozalandi.\n"
+        "Test natijalari saqlandi."
+    )
+
+
 async def main():
-    print("Bot ishga tushdi...")
+    print("ZA Kitobxonlik bot ishga tushdi!")
     await dp.start_polling(bot)
 
 
