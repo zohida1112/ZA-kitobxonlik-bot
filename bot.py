@@ -525,10 +525,19 @@ async def confirm_book2_referral(invited_user_id):
     access = get_book2_access(referrer_id)
     try:
         if access["unlocked"]:
+            start_keyboard = InlineKeyboardMarkup(
+                inline_keyboard=[
+                    [InlineKeyboardButton(
+                        text="📗 2-kitob testini boshlash",
+                        callback_data="start_test2"
+                    )]
+                ]
+            )
             await bot.send_message(
                 referrer_id,
                 "🎉 2-kitob uchun yangi referalingiz tasdiqlandi!\n\n"
-                "📗 2-kitob testi ochildi. /tests buyrug‘ini bosing va testni tanlang.",
+                "📗 Endi 2-kitob testini boshlashingiz mumkin.",
+                reply_markup=start_keyboard,
             )
     except Exception:
         pass
@@ -699,8 +708,8 @@ async def start_handler(message: Message):
     referrer_id = None
     book2_referrer_id = None
 
-    # "Yangi odam" ekanini add_user dan oldin tekshiramiz.
     invited_was_existing = get_user(user_id) is not None
+    invited_was_final_member = await is_final_channel_member(user_id)
 
     parts = message.text.split(maxsplit=1)
     if len(parts) == 2:
@@ -723,20 +732,17 @@ async def start_handler(message: Message):
 
     add_user(user_id, message.from_user.full_name, message.from_user.username, referrer_id)
 
-    if book2_referrer_id:
+    if book2_referrer_id and not invited_was_existing and not invited_was_final_member:
         create_book2_pending_referral(
             invited_user_id=user_id,
             referrer_id=book2_referrer_id,
-            invited_was_existing=invited_was_existing,
+            invited_was_existing=False,
         )
 
-    # Eski ishtirokchi 1-kitob uchun qayta referal qilmaydi.
-    # 2-kitob uchun esa alohida yangi referal talab qilinadi.
-    if await is_final_channel_member(user_id):
+    if invited_was_final_member:
         grant_existing_access(user_id)
-
-        if book2_referrer_id and await is_member_of_required_channels(user_id):
-            await confirm_book2_referral(user_id)
+        db.execute("DELETE FROM book2_referrals WHERE invited_user_id=? AND confirmed=0", (user_id,))
+        db.commit()
 
         await message.answer(
             "📚 Xush kelibsiz! Siz asosiy kanal a’zosisiz.\n\n"
@@ -781,6 +787,9 @@ async def check_channels_callback(callback: CallbackQuery):
 
     if await is_final_channel_member(user_id):
         grant_existing_access(user_id)
+        db.execute("DELETE FROM book2_referrals WHERE invited_user_id=? AND confirmed=0", (user_id,))
+        db.commit()
+
         await callback.answer("✅ Siz avvaldan loyiha ishtirokchisisiz!")
         await bot.send_message(
             callback.message.chat.id,
@@ -851,11 +860,19 @@ async def check_referral2_callback(callback: CallbackQuery):
 
     if access["unlocked"]:
         await callback.answer("✅ 2-kitob testi ochildi!")
+        start_keyboard = InlineKeyboardMarkup(
+            inline_keyboard=[
+                [InlineKeyboardButton(
+                    text="📗 2-kitob testini boshlash",
+                    callback_data="start_test2"
+                )]
+            ]
+        )
         await bot.send_message(
             callback.message.chat.id,
             "📗 2-kitob uchun referal sharti bajarildi.\n\n"
-            "Endi testni boshlashingiz mumkin.",
-            reply_markup=test_menu_keyboard(),
+            "Quyidagi tugmani bosib testni boshlang.",
+            reply_markup=start_keyboard,
         )
     else:
         await callback.answer(
@@ -1239,6 +1256,22 @@ async def tests_handler(message: Message):
         await message.answer("📚 Kerakli testni tanlang:", reply_markup=test_menu_keyboard())
     else:
         await message.answer("Avval /start orqali loyiha shartlarini bajaring.")
+
+
+@dp.message(Command("resetbook2"))
+async def reset_book2_handler(message: Message):
+    if message.from_user.id != ADMIN_ID:
+        return
+
+    db.execute("DELETE FROM book2_referrals")
+    db.execute("DELETE FROM book2_access")
+    db.execute("DELETE FROM attempts2")
+    db.commit()
+
+    await message.answer(
+        "✅ 2-kitob bo‘yicha referal va test ma’lumotlari tozalandi.\n"
+        "1-kitob natijalari va foydalanuvchilar bazasi saqlandi."
+    )
 
 
 @dp.message(Command("results"))
