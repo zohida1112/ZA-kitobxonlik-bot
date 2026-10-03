@@ -339,6 +339,9 @@ TEST2_QUESTIONS = [{'q': 'Qari Mayorning yig‘ilishidagi kalamushlar masalasi b
 TEST2_TIME_LIMIT_MINUTES = 20
 
 
+TEST3_TIME_LIMIT_MINUTES = 20
+TEST3_QUESTIONS = [{'q': 'Asar boshida hikoyachi Qori Ishkambani izlashiga nima sabab bo‘ladi?', 'options': ['Madrasada vaqtincha turish uchun hujra izlayotgani', 'Qarz olmoqchi bo‘lgani', 'Bankka ishga kirmoqchi bo‘lgani', 'Do‘ppi sotmoqchi bo‘lgani'], 'correct': 0}, {'q': 'Qori Ishkambaning asl ismi qanday edi?', 'options': ['Qori Ismat', 'Qori Abdulla', 'Qori Muhsin', 'Qori Hamroh'], 'correct': 0}, {'q': 'Sartarosh Qori Ishkambaning sallasini nega qoziqqa ilishga qo‘ymaydi?', 'options': ['Sallaning kiri lungilarga yuqmasligi uchun', 'Unda pul borligi uchun', 'Qoziq singanligi uchun', 'Sallani o‘g‘irlashlaridan qo‘rqib'], 'correct': 0}, {'q': 'Qori Ishkamba katta salla o‘rashining foydasini qanday tushuntiradi?', 'options': ['Janozada ko‘proq yirtish olish uchun', 'Bankda obro‘li ko‘rinish uchun', 'Sovuqdan saqlanish uchun', 'Mudarris bo‘lib ko‘rinish uchun'], 'correct': 0}, {'q': 'Qori Ishkamba sartaroshga kam haq berishini qanday oqlaydi?', 'options': ['Boshining yarmi sochsizligini aytadi', 'Faqat mo‘ylovini oldirganini aytadi', 'Sartarosh qarzdorligini aytadi', 'Sochini o‘zi qisqartirganini aytadi'], 'correct': 0}, {'q': 'Sartaroshxonadan chiqayotganda Qori Ishkamba nima deydi?', 'options': ['Maydam yo‘q, keyingi safar ikkisini qo‘shib beraman', 'Janozadan qaytgach beraman', 'Bankdan olib kelaman', 'Yirtish bilan to‘layman'], 'correct': 0}, {'q': 'Chinnifurush oldida olingan ikki nonning pulini kim to‘laydi?', 'options': ['Chinnifurush', 'Sandiqfurush', 'Hikoyachi', 'Novvoy'], 'correct': 0}, {'q': 'Qori Ishkamba do‘ppifurushdan dastlab nimani so‘raydi?', 'options': ['Do‘ppilari sotilgan-sotilmaganini', 'Yangi do‘ppi narxini', 'Qarzga do‘ppi berishini', 'Do‘ppilarni kim tikkanini'], 'correct': 0}, {'q': 'Boyvachcha Qori Ishkambadan qarz olishining sabablaridan biri nima edi?', 'options': ['Otasi bilmasligi kerak bo‘lgan xarajatlarni yashirish', 'Yer sotib olish', 'Hujra qurish', 'Bank omonatini ko‘paytirish'], 'correct': 0}, {'q': 'Boyvachcha Qori Ishkambaning qaysi xususiyatini foydali deb biladi?', 'options': ['Ortiqcha foyda yoki yog‘liq palov evaziga sir saqlashini', 'Foiz olmasligini', 'Hujjatsiz qarz berishini', 'Otasi bilan qarindoshligini'], 'correct': 0}, {'q': 'Qori Ishkamba ishongan odam sifatida kim ko‘rsatiladi?', 'options': ['“Kavkaz” saroyining saroyboni', 'Arbob Ro‘zi', 'Mirza Abdulla', 'Muhsin'], 'correct': 0}, {'q': 'Hamrohrafiq samovarchidan dastlab qancha qarzdor edi?', 'options': ['500 tanga', '550 tanga', '600 tanga', '1370 tanga'], 'correct': 0}, {'q': 'Samovarchining foydasi qo‘shilgach Hamrohrafiqning qarzi qancha bo‘ladi?', 'options': ['550 tanga', '575 tanga', '600 tanga', '640 tanga'], 'correct': 0}, {'q': 'Arbob Ro‘ziga “qadam haqi” sifatida qancha belgilangan edi?', 'options': ['25 tanga', '40 tanga', '50 tanga', '75 tanga'], 'correct': 0}, {'q': 'Hamrohrafiq besh tanob yerini Qori Ismatillaga qancha badalga sotgan deb rasmiylashtiriladi?', 'options': ['1370 tanga', '1400 tanga', '2240 tanga', '2400 tanga'], 'correct': 0}, {'q': 'Muhsinga hisobni to‘g‘rilash uchun qancha qarz kerak deb belgilanadi?', 'options': ['1400 tanga', '1310 tanga', '2240 tanga', '2400 tanga'], 'correct': 0}, {'q': 'Qori Ishkamba Muhsin uchun har yuz tangaga oyiga qancha foyda belgilaydi?', 'options': ['5 tanga', '3 tanga', '8 tanga', '10 tanga'], 'correct': 0}, {'q': 'Muhsinning 1400 tangalik qarziga bir yillik foyda qancha chiqadi?', 'options': ['840 tanga', '600 tanga', '1000 tanga', '160 tanga'], 'correct': 0}, {'q': 'Qo‘shimcha xarajatlar bilan Muhsin qancha tangalik veksel beradigan bo‘ladi?', 'options': ['2400 tanga', '2240 tanga', '1400 tanga', '3600 tanga'], 'correct': 0}, {'q': '2400 Buxoro tangasi rus puliga aylantirilganda veksel qancha so‘mlik bo‘ladi?', 'options': ['360 so‘m', '240 so‘m', '400 so‘m', '600 so‘m'], 'correct': 0}, {'q': 'Bank o‘g‘irligidan keyin bo‘sh pul qopchalari qayerdan topiladi?', 'options': ['Sho‘rko‘l bo‘yidan', 'Labi hovuzi Devonbegidan', 'Sangsabzdan', 'Kavkaz saroyidan'], 'correct': 0}, {'q': 'Bank talon-toroj qilingach asosiy kassalar qayerga ko‘chiriladi?', 'options': ['Kogonga', 'Samarqandga', 'Toshkentga', 'Murg‘akka'], 'correct': 0}, {'q': 'Qori Ishkambaning saroybonga ishonchi ortishiga sabab bo‘lgan tanga necha tiyinlik edi?', 'options': ['10 tiyinlik', '5 tiyinlik', '20 tiyinlik', '50 tiyinlik'], 'correct': 0}, {'q': 'Qori Ishkambaning saroychadagi hujrasidan qancha pul o‘g‘irlanadi?', 'options': ['10 ming Buxoro tangasi', '15 ming so‘m', '96 ming tanga', '500 ming tanga'], 'correct': 0}, {'q': 'O‘g‘irlangan 10 ming tanga imperator oltini hisobida qancha edi?', 'options': ['1500 so‘m oltin', '1000 so‘m oltin', '2000 so‘m oltin', '5000 so‘m oltin'], 'correct': 0}, {'q': 'Mirza Abdulla Qori Ishkambadan xo‘jayini nomidan qancha pul so‘raydi?', 'options': ['15 ming so‘m', '10 ming so‘m', '96 ming tanga', '2 million tanga'], 'correct': 0}, {'q': 'Mirza Abdulla bu pulni qancha muddat ishlatishini aytadi?', 'options': ['Ikki oy', 'Bir oy', 'Olti oy', 'Bir yil'], 'correct': 0}, {'q': 'Mirza Abdulla voqeasida Qori Ishkamba dastlab necha ming tanga olib keladi?', 'options': ['96 ming tanga', '100 ming tanga', '104 ming tanga', '90 ming tanga'], 'correct': 0}, {'q': 'Mirza Abdulla mojarosidan keyin Qori Ishkamba kimlardan yordam so‘raydi?', 'options': ['Qozi kalon va qushbegidan', 'Sartarosh va chinnifurushdan', 'Muhsin va Hamrohrafiqdan', 'Bank qorovullaridan'], 'correct': 0}, {'q': '180-betda Qori Ishkamba uch tobutdan qaysi birining ortidan borishga qaror qiladi?', 'options': ['Yangi va a’lo qizil kimxob tortilgan tobut', 'Surp tortilgan tobut', 'Eski va past zarrin tortilgan tobut', 'Birinchi olib chiqilgan tobut'], 'correct': 0}]
+
 bot = Bot(BOT_TOKEN)
 dp = Dispatcher()
 
@@ -348,72 +351,31 @@ db.row_factory = sqlite3.Row
 # -------------------- DATABASE --------------------
 
 db.execute(
-    """
-    CREATE TABLE IF NOT EXISTS users (
-        user_id INTEGER PRIMARY KEY,
-        full_name TEXT,
-        username TEXT,
-        referrer_id INTEGER,
-        verified INTEGER DEFAULT 0,
-        referral_count INTEGER DEFAULT 0,
-        reward_given INTEGER DEFAULT 0
-    )
-    """
+    """ CREATE TABLE IF NOT EXISTS users ( user_id INTEGER PRIMARY KEY, full_name TEXT, username TEXT, referrer_id INTEGER, verified INTEGER DEFAULT 0, referral_count INTEGER DEFAULT 0, reward_given INTEGER DEFAULT 0 ) """
 )
 
 # 1-kitob eski test natijalari saqlanadi.
 db.execute(
-    """
-    CREATE TABLE IF NOT EXISTS attempts (
-        user_id INTEGER PRIMARY KEY,
-        current_question INTEGER DEFAULT 0,
-        score INTEGER DEFAULT 0,
-        started_at TEXT,
-        finished_at TEXT,
-        completed INTEGER DEFAULT 0
-    )
-    """
+    """ CREATE TABLE IF NOT EXISTS attempts ( user_id INTEGER PRIMARY KEY, current_question INTEGER DEFAULT 0, score INTEGER DEFAULT 0, started_at TEXT, finished_at TEXT, completed INTEGER DEFAULT 0 ) """
 )
 
 # 2-kitob natijalari, savol va variantlar aralash tartibi bilan saqlanadi.
 db.execute(
-    """
-    CREATE TABLE IF NOT EXISTS attempts2 (
-        user_id INTEGER PRIMARY KEY,
-        current_question INTEGER DEFAULT 0,
-        score INTEGER DEFAULT 0,
-        started_at TEXT,
-        finished_at TEXT,
-        completed INTEGER DEFAULT 0,
-        question_order TEXT,
-        option_orders TEXT
-    )
-    """
+    """ CREATE TABLE IF NOT EXISTS attempts2 ( user_id INTEGER PRIMARY KEY, current_question INTEGER DEFAULT 0, score INTEGER DEFAULT 0, started_at TEXT, finished_at TEXT, completed INTEGER DEFAULT 0, question_order TEXT, option_orders TEXT ) """
 )
+
+# 3-kitob natijalari
+db.execute("""CREATE TABLE IF NOT EXISTS attempts3 ( user_id INTEGER PRIMARY KEY, current_question INTEGER DEFAULT 0, score INTEGER DEFAULT 0, started_at TEXT, finished_at TEXT, completed INTEGER DEFAULT 0, question_order TEXT, option_orders TEXT)""")
 
 # Har bir test uchun alohida kirish huquqi.
 db.execute(
-    """
-    CREATE TABLE IF NOT EXISTS test_access (
-        user_id INTEGER NOT NULL,
-        test_key TEXT NOT NULL,
-        unlocked INTEGER DEFAULT 0,
-        PRIMARY KEY (user_id, test_key)
-    )
-    """
+    """ CREATE TABLE IF NOT EXISTS test_access ( user_id INTEGER NOT NULL, test_key TEXT NOT NULL, unlocked INTEGER DEFAULT 0, PRIMARY KEY (user_id, test_key) ) """
 )
 
 # Yangi referal uchun vaqtinchalik bog‘lanish.
 # invited_user_id UNIQUE: bir odam faqat bitta test uchun bir marta referal bo‘la oladi.
 db.execute(
-    """
-    CREATE TABLE IF NOT EXISTS test_referrals (
-        invited_user_id INTEGER PRIMARY KEY,
-        referrer_id INTEGER NOT NULL,
-        test_key TEXT NOT NULL,
-        confirmed INTEGER DEFAULT 0
-    )
-    """
+    """ CREATE TABLE IF NOT EXISTS test_referrals ( invited_user_id INTEGER PRIMARY KEY, referrer_id INTEGER NOT NULL, test_key TEXT NOT NULL, confirmed INTEGER DEFAULT 0 ) """
 )
 
 db.commit()
@@ -486,6 +448,7 @@ def test_menu_keyboard():
         inline_keyboard=[
             [InlineKeyboardButton(text="📘 1-kitob testi", callback_data="choose_test:t1")],
             [InlineKeyboardButton(text="📗 2-kitob testi", callback_data="choose_test:t2")],
+            [InlineKeyboardButton(text="📙 3-kitob testi", callback_data="choose_test:t3")],
         ]
     )
 
@@ -514,9 +477,12 @@ def actual_start_keyboard(test_key):
     if test_key == "t1":
         text = "📘 1-kitob testini boshlash"
         cb = "start_test"
-    else:
+    elif test_key == "t2":
         text = "📗 2-kitob testini boshlash"
         cb = "start_test2"
+    else:
+        text = "📙 3-kitob testini boshlash"
+        cb = "start_test3"
 
     return InlineKeyboardMarkup(
         inline_keyboard=[
@@ -592,7 +558,7 @@ async def send_test_referral_post(chat_id, user_id, test_key):
     payload = f"{test_key}_{user_id}"
     ref_link = f"https://t.me/{me.username}?start={payload}"
 
-    test_name = "1-kitob testi" if test_key == "t1" else "2-kitob testi"
+    test_name = "1-kitob testi" if test_key == "t1" else ("2-kitob testi" if test_key == "t2" else "3-kitob testi")
 
     caption = (
         f"📚 {test_name.upper()} UCHUN 1 TA YANGI REFERAL KERAK.\n\n"
@@ -636,7 +602,7 @@ def create_pending_test_referral(invited_user_id, referrer_id, test_key, was_exi
         return False
     if invited_user_id == referrer_id:
         return False
-    if test_key not in {"t1", "t2"}:
+    if test_key not in {"t1", "t2", "t3"}:
         return False
     if not get_user(referrer_id):
         return False
@@ -650,11 +616,7 @@ def create_pending_test_referral(invited_user_id, referrer_id, test_key, was_exi
         return False
 
     db.execute(
-        """
-        INSERT INTO test_referrals
-        (invited_user_id, referrer_id, test_key, confirmed)
-        VALUES (?, ?, ?, 0)
-        """,
+        """ INSERT INTO test_referrals (invited_user_id, referrer_id, test_key, confirmed) VALUES (?, ?, ?, 0) """,
         (invited_user_id, referrer_id, test_key),
     )
     db.commit()
@@ -700,7 +662,7 @@ async def start_handler(message: Message):
     parts = message.text.split(maxsplit=1)
     if len(parts) == 2:
         payload = parts[1].strip()
-        if payload.startswith("t1_") or payload.startswith("t2_"):
+        if payload.startswith("t1_") or payload.startswith("t2_") or payload.startswith("t3_"):
             try:
                 test_key, rid = payload.split("_", 1)
                 referrer_id = int(rid)
@@ -782,7 +744,7 @@ async def choose_test_callback(callback: CallbackQuery):
     user_id = callback.from_user.id
     test_key = callback.data.split(":", 1)[1]
 
-    if test_key not in {"t1", "t2"}:
+    if test_key not in {"t1", "t2", "t3"}:
         return
 
     if not await is_member_of_required_channels(user_id):
@@ -804,7 +766,7 @@ async def choose_test_callback(callback: CallbackQuery):
                 show_alert=True,
             )
             return
-    else:
+    elif test_key == "t2":
         attempt = db.execute(
             "SELECT * FROM attempts2 WHERE user_id=?",
             (user_id,),
@@ -814,6 +776,11 @@ async def choose_test_callback(callback: CallbackQuery):
                 "Siz 2-kitob testini avval ishlagansiz.",
                 show_alert=True,
             )
+            return
+    else:
+        attempt = db.execute("SELECT * FROM attempts3 WHERE user_id=?", (user_id,)).fetchone()
+        if attempt and attempt["completed"]:
+            await callback.answer("Siz 3-kitob testini avval ishlagansiz.", show_alert=True)
             return
 
     access = get_test_access(user_id, test_key)
@@ -849,7 +816,7 @@ async def verify_final_channel_callback(callback: CallbackQuery):
     user_id = callback.from_user.id
     test_key = callback.data.split(":", 1)[1]
 
-    if test_key not in {"t1", "t2"}:
+    if test_key not in {"t1", "t2", "t3"}:
         return
 
     access = get_test_access(user_id, test_key)
@@ -946,11 +913,7 @@ async def start_test_callback(callback: CallbackQuery):
 
     if not attempt:
         db.execute(
-            """
-            INSERT INTO attempts
-            (user_id, current_question, score, started_at, completed)
-            VALUES (?, 0, 0, ?, 0)
-            """,
+            """ INSERT INTO attempts (user_id, current_question, score, started_at, completed) VALUES (?, 0, 0, ?, 0) """,
             (user_id, datetime.now(timezone.utc).isoformat()),
         )
         db.commit()
@@ -999,11 +962,7 @@ async def answer_callback(callback: CallbackQuery):
     if next_question >= len(QUESTIONS):
         finished = datetime.now(timezone.utc)
         db.execute(
-            """
-            UPDATE attempts
-            SET current_question=?, score=?, finished_at=?, completed=1
-            WHERE user_id=?
-            """,
+            """ UPDATE attempts SET current_question=?, score=?, finished_at=?, completed=1 WHERE user_id=? """,
             (next_question, score, finished.isoformat(), user_id),
         )
         db.commit()
@@ -1024,11 +983,7 @@ async def answer_callback(callback: CallbackQuery):
         return
 
     db.execute(
-        """
-        UPDATE attempts
-        SET current_question=?, score=?
-        WHERE user_id=?
-        """,
+        """ UPDATE attempts SET current_question=?, score=? WHERE user_id=? """,
         (next_question, score, user_id),
     )
     db.commit()
@@ -1141,11 +1096,7 @@ async def finish_test2(user_id, chat_id, timed_out=False):
     finished = datetime.now(timezone.utc)
 
     db.execute(
-        """
-        UPDATE attempts2
-        SET finished_at=?, completed=1
-        WHERE user_id=?
-        """,
+        """ UPDATE attempts2 SET finished_at=?, completed=1 WHERE user_id=? """,
         (finished.isoformat(), user_id),
     )
     db.commit()
@@ -1248,12 +1199,7 @@ async def start_test2_callback(callback: CallbackQuery):
         now = datetime.now(timezone.utc).isoformat()
 
         db.execute(
-            """
-            INSERT INTO attempts2
-            (user_id, current_question, score, started_at,
-             completed, question_order, option_orders)
-            VALUES (?, 0, 0, ?, 0, ?, ?)
-            """,
+            """ INSERT INTO attempts2 (user_id, current_question, score, started_at, completed, question_order, option_orders) VALUES (?, 0, 0, ?, 0, ?, ?) """,
             (
                 user_id,
                 now,
@@ -1382,11 +1328,7 @@ async def test2_answer_callback(callback: CallbackQuery):
         pass
 
     db.execute(
-        """
-        UPDATE attempts2
-        SET current_question=?, score=?
-        WHERE user_id=?
-        """,
+        """ UPDATE attempts2 SET current_question=?, score=? WHERE user_id=? """,
         (next_step, score, user_id),
     )
     db.commit()
@@ -1404,16 +1346,94 @@ async def test2_answer_callback(callback: CallbackQuery):
             user_id
         )
 
+# -------------------- 3-KITOB --------------------
+def make_test3_attempt():
+    q_order=list(range(len(TEST3_QUESTIONS))); random.shuffle(q_order)
+    option_orders={}
+    for q_idx in q_order:
+        order=list(range(4)); random.shuffle(order); option_orders[str(q_idx)]=order
+    return q_order,option_orders
+
+def test3_seconds_left(a):
+    s=parse_dt(a["started_at"])
+    return max(0,int(TEST3_TIME_LIMIT_MINUTES*60-(datetime.now(timezone.utc)-s).total_seconds())) if s else 0
+
+def test3_keyboard(step):
+    return InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text="A",callback_data=f"t3answer:{step}:0"),
+        InlineKeyboardButton(text="B",callback_data=f"t3answer:{step}:1"),
+        InlineKeyboardButton(text="C",callback_data=f"t3answer:{step}:2"),
+        InlineKeyboardButton(text="D",callback_data=f"t3answer:{step}:3")]])
+
+async def send_test3_question(chat_id,user_id):
+    a=db.execute("SELECT * FROM attempts3 WHERE user_id=?",(user_id,)).fetchone()
+    if not a or a["completed"]: return
+    if test3_seconds_left(a)<=0: await finish_test3(user_id,chat_id,True); return
+    qo=json.loads(a["question_order"]); oo=json.loads(a["option_orders"]); step=a["current_question"]
+    if step>=len(qo): await finish_test3(user_id,chat_id); return
+    qi=qo[step]; q=TEST3_QUESTIONS[qi]; order=oo[str(qi)]; d=[q["options"][i] for i in order]
+    mm,ss=divmod(test3_seconds_left(a),60)
+    msg=f"📙 3-kitob testi\n❓ Savol {step+1}/{len(qo)}\n⏳ Qolgan vaqt: {mm:02d}:{ss:02d}\n\n{q['q']}\n\nA) {d[0]}\n\nB) {d[1]}\n\nC) {d[2]}\n\nD) {d[3]}"
+    await bot.send_message(chat_id,msg,reply_markup=test3_keyboard(step))
+
+async def finish_test3(user_id,chat_id,timed_out=False):
+    a=db.execute("SELECT * FROM attempts3 WHERE user_id=?",(user_id,)).fetchone()
+    if not a or a["completed"]: return
+    end=datetime.now(timezone.utc); db.execute("UPDATE attempts3 SET finished_at=?,completed=1 WHERE user_id=?",(end.isoformat(),user_id)); db.commit()
+    total=len(json.loads(a["question_order"])); score=a["score"]; p=round(score/total*100)
+    spent=min(int((end-parse_dt(a["started_at"])).total_seconds()),TEST3_TIME_LIMIT_MINUTES*60); mm,ss=divmod(spent,60)
+    await bot.send_message(chat_id,("⏰ Vaqt tugadi!" if timed_out else "✅ 3-kitob testi yakunlandi!")+f"\n\nNatijangiz: {score}/{total}\nFoiz: {p}%\nSarflangan vaqt: {mm:02d}:{ss:02d}",reply_markup=test_menu_keyboard())
+    await notify_admin_result(user_id,"3-kitob",score,total,spent)
+
+async def timeout_test3(user_id,chat_id,seconds):
+    try:
+        await asyncio.sleep(seconds)
+        a=db.execute("SELECT * FROM attempts3 WHERE user_id=?",(user_id,)).fetchone()
+        if a and not a["completed"]: await finish_test3(user_id,chat_id,True)
+    except asyncio.CancelledError: pass
+
+@dp.callback_query(F.data=="start_test3")
+async def start_test3_callback(callback:CallbackQuery):
+    uid=callback.from_user.id; access=get_test_access(uid,"t3")
+    if not access["unlocked"]:
+        await callback.answer("🔐 3-kitob testi uchun avval 1 ta yangi referal kerak.",show_alert=True)
+        await send_test_referral_post(callback.message.chat.id,uid,"t3"); return
+    if not await is_final_channel_member(uid):
+        await callback.answer("❌ Avval yopiq kitobxonlik kanaliga kiring.",show_alert=True)
+        await send_final_channel_and_start(uid,"t3"); return
+    a=db.execute("SELECT * FROM attempts3 WHERE user_id=?",(uid,)).fetchone()
+    if a and a["completed"]: await callback.answer("Siz 3-kitob testini avval ishlagansiz.",show_alert=True); return
+    if not a:
+        qo,oo=make_test3_attempt(); now=datetime.now(timezone.utc).isoformat()
+        db.execute("INSERT INTO attempts3(user_id,current_question,score,started_at,completed,question_order,option_orders) VALUES(?,0,0,?,0,?,?)",(uid,now,json.dumps(qo),json.dumps(oo))); db.commit()
+        a=db.execute("SELECT * FROM attempts3 WHERE user_id=?",(uid,)).fetchone()
+    left=test3_seconds_left(a)
+    if left<=0: await finish_test3(uid,callback.message.chat.id,True); return
+    await callback.answer()
+    if a["current_question"]==0:
+        await bot.send_message(callback.message.chat.id,"📙 3-kitob testi boshlandi!\n\n📖 Sadriddin Ayniy — “Sudxo‘rning o‘limi”, faqat 1–180-betlar.\n🔀 30 savol va A/B/C/D variantlari aralashadi.\n⏳ 20 daqiqa.\n↩️ Oldingi savolga qaytib bo‘lmaydi.")
+    asyncio.create_task(timeout_test3(uid,callback.message.chat.id,left))
+    await send_test3_question(callback.message.chat.id,uid)
+
+@dp.callback_query(F.data.startswith("t3answer:"))
+async def test3_answer_callback(callback:CallbackQuery):
+    uid=callback.from_user.id; a=db.execute("SELECT * FROM attempts3 WHERE user_id=?",(uid,)).fetchone()
+    if not a or a["completed"]: await callback.answer("3-kitob testi faol emas.",show_alert=True); return
+    if test3_seconds_left(a)<=0: await finish_test3(uid,callback.message.chat.id,True); return
+    _,st,dp_=callback.data.split(":"); step=int(st); pos=int(dp_)
+    if step!=a["current_question"]: await callback.answer("Bu savolga javob qabul qilingan.",show_alert=True); return
+    qo=json.loads(a["question_order"]); oo=json.loads(a["option_orders"]); qi=qo[step]
+    score=a["score"]+(1 if oo[str(qi)][pos]==TEST3_QUESTIONS[qi]["correct"] else 0); nxt=step+1
+    try: await callback.message.edit_reply_markup(reply_markup=None)
+    except Exception: pass
+    db.execute("UPDATE attempts3 SET current_question=?,score=? WHERE user_id=?",(nxt,score,uid)); db.commit(); await callback.answer("Javob qabul qilindi.")
+    if nxt>=len(qo): await finish_test3(uid,callback.message.chat.id)
+    else: await send_test3_question(callback.message.chat.id,uid)
+
 
 # -------------------- NATIJALAR --------------------
 
-async def notify_admin_result(
-    user_id,
-    test_name,
-    score,
-    total,
-    spent_seconds=None
-):
+async def notify_admin_result( user_id, test_name, score, total, spent_seconds=None ):
     if user_id == ADMIN_ID:
         return
 
@@ -1456,26 +1476,11 @@ async def results_handler(message: Message):
         return
 
     old_rows = db.execute(
-        """
-        SELECT a.user_id, a.score, a.started_at, a.finished_at,
-               u.full_name, u.username
-        FROM attempts a
-        LEFT JOIN users u ON u.user_id=a.user_id
-        WHERE a.completed=1
-        ORDER BY a.score DESC, a.finished_at ASC
-        """
+        """ SELECT a.user_id, a.score, a.started_at, a.finished_at, u.full_name, u.username FROM attempts a LEFT JOIN users u ON u.user_id=a.user_id WHERE a.completed=1 ORDER BY a.score DESC, a.finished_at ASC """
     ).fetchall()
 
     new_rows = db.execute(
-        """
-        SELECT a.user_id, a.score, a.started_at, a.finished_at,
-               a.question_order, u.full_name, u.username
-        FROM attempts2 a
-        LEFT JOIN users u ON u.user_id=a.user_id
-        WHERE a.completed=1
-        ORDER BY a.score DESC,
-                 (julianday(a.finished_at)-julianday(a.started_at)) ASC
-        """
+        """ SELECT a.user_id, a.score, a.started_at, a.finished_at, a.question_order, u.full_name, u.username FROM attempts2 a LEFT JOIN users u ON u.user_id=a.user_id WHERE a.completed=1 ORDER BY a.score DESC, (julianday(a.finished_at)-julianday(a.started_at)) ASC """
     ).fetchall()
 
     parts = ["🏆 TEST NATIJALARI\n"]
@@ -1544,18 +1549,12 @@ async def my_result_handler(message: Message):
     uid = message.from_user.id
 
     old = db.execute(
-        """
-        SELECT * FROM attempts
-        WHERE user_id=? AND completed=1
-        """,
+        """ SELECT * FROM attempts WHERE user_id=? AND completed=1 """,
         (uid,),
     ).fetchone()
 
     new = db.execute(
-        """
-        SELECT * FROM attempts2
-        WHERE user_id=? AND completed=1
-        """,
+        """ SELECT * FROM attempts2 WHERE user_id=? AND completed=1 """,
         (uid,),
     ).fetchone()
 
